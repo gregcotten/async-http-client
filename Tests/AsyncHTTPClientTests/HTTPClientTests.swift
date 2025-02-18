@@ -469,6 +469,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
 
         var response = try localClient.get(url: self.defaultHTTPBinURLPrefix + "redirect/302").wait()
         XCTAssertEqual(response.status, .ok)
+        XCTAssertEqual(response.visitedURLs, [self.defaultHTTPBinURLPrefix + "redirect/302", self.defaultHTTPBinURLPrefix + "ok"])
+        XCTAssertEqual(response.url, self.defaultHTTPBinURLPrefix + "ok")
 
         response = try localClient.get(url: self.defaultHTTPBinURLPrefix + "redirect/https?port=\(httpsBin.port)")
             .wait()
@@ -501,6 +503,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
                         var response = try localClient.execute(request: request).wait()
                         XCTAssertEqual(response.status, .found)
                         XCTAssertEqual(response.headers.first(name: "Location"), targetURL)
+                        XCTAssertEqual(response.url, request.url.absoluteString)
+                        XCTAssertEqual(response.visitedURLs, [request.url.absoluteString])
 
                         request = try Request(
                             url: "https://localhost:\(httpsBin.port)/redirect/target",
@@ -512,6 +516,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
                         response = try localClient.execute(request: request).wait()
                         XCTAssertEqual(response.status, .found)
                         XCTAssertEqual(response.headers.first(name: "Location"), targetURL)
+                        XCTAssertEqual(response.url, request.url.absoluteString)
+                        XCTAssertEqual(response.visitedURLs, [request.url.absoluteString])
 
                         // From HTTP or HTTPS to HTTPS+UNIX should also fail to redirect
                         targetURL =
@@ -526,6 +532,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
                         response = try localClient.execute(request: request).wait()
                         XCTAssertEqual(response.status, .found)
                         XCTAssertEqual(response.headers.first(name: "Location"), targetURL)
+                        XCTAssertEqual(response.url, request.url.absoluteString)
+                        XCTAssertEqual(response.visitedURLs, [request.url.absoluteString])
 
                         request = try Request(
                             url: "https://localhost:\(httpsBin.port)/redirect/target",
@@ -537,6 +545,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
                         response = try localClient.execute(request: request).wait()
                         XCTAssertEqual(response.status, .found)
                         XCTAssertEqual(response.headers.first(name: "Location"), targetURL)
+                        XCTAssertEqual(response.url, request.url.absoluteString)
+                        XCTAssertEqual(response.visitedURLs, [request.url.absoluteString])
 
                         // ... while HTTP+UNIX to HTTP, HTTPS, or HTTP(S)+UNIX should succeed
                         targetURL = self.defaultHTTPBinURLPrefix + "ok"
@@ -550,6 +560,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
 
                         response = try localClient.execute(request: request).wait()
                         XCTAssertEqual(response.status, .ok)
+                        XCTAssertEqual(response.url, targetURL)
+                        XCTAssertEqual(response.visitedURLs, [request.url.absoluteString, targetURL])
 
                         targetURL = "https://localhost:\(httpsBin.port)/ok"
                         request = try Request(
@@ -562,6 +574,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
 
                         response = try localClient.execute(request: request).wait()
                         XCTAssertEqual(response.status, .ok)
+                        XCTAssertEqual(response.url, targetURL)
+                        XCTAssertEqual(response.visitedURLs, [request.url.absoluteString, targetURL])
 
                         targetURL =
                             "http+unix://\(httpSocketPath.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!)/ok"
@@ -575,6 +589,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
 
                         response = try localClient.execute(request: request).wait()
                         XCTAssertEqual(response.status, .ok)
+                        XCTAssertEqual(response.url, targetURL)
+                        XCTAssertEqual(response.visitedURLs, [request.url.absoluteString, targetURL])
 
                         targetURL =
                             "https+unix://\(httpsSocketPath.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!)/ok"
@@ -588,6 +604,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
 
                         response = try localClient.execute(request: request).wait()
                         XCTAssertEqual(response.status, .ok)
+                        XCTAssertEqual(response.url, targetURL)
+                        XCTAssertEqual(response.visitedURLs, [request.url.absoluteString, targetURL])
 
                         // ... and HTTPS+UNIX to HTTP, HTTPS, or HTTP(S)+UNIX should succeed
                         targetURL = self.defaultHTTPBinURLPrefix + "ok"
@@ -601,6 +619,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
 
                         response = try localClient.execute(request: request).wait()
                         XCTAssertEqual(response.status, .ok)
+                        XCTAssertEqual(response.url, targetURL)
+                        XCTAssertEqual(response.visitedURLs, [request.url.absoluteString, targetURL])
 
                         targetURL = "https://localhost:\(httpsBin.port)/ok"
                         request = try Request(
@@ -613,6 +633,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
 
                         response = try localClient.execute(request: request).wait()
                         XCTAssertEqual(response.status, .ok)
+                        XCTAssertEqual(response.url, targetURL)
+                        XCTAssertEqual(response.visitedURLs, [request.url.absoluteString, targetURL])
 
                         targetURL =
                             "http+unix://\(httpSocketPath.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!)/ok"
@@ -626,6 +648,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
 
                         response = try localClient.execute(request: request).wait()
                         XCTAssertEqual(response.status, .ok)
+                        XCTAssertEqual(response.url, targetURL)
+                        XCTAssertEqual(response.visitedURLs, [request.url.absoluteString, targetURL])
 
                         targetURL =
                             "https+unix://\(httpsSocketPath.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!)/ok"
@@ -639,6 +663,8 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
 
                         response = try localClient.execute(request: request).wait()
                         XCTAssertEqual(response.status, .ok)
+                        XCTAssertEqual(response.url, targetURL)
+                        XCTAssertEqual(response.visitedURLs, [request.url.absoluteString, targetURL])
                     }
                 )
             }
@@ -667,6 +693,9 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
         }
         let hostName = try? JSONDecoder().decode(RequestInfo.self, from: body).data
         XCTAssertEqual("127.0.0.1:\(self.defaultHTTPBin.port)", hostName)
+        let targetURL = "http://127.0.0.1:\(self.defaultHTTPBin.port)/echohostheader"
+        XCTAssertEqual(response.url, targetURL)
+        XCTAssertEqual(response.visitedURLs, [url, targetURL])
     }
 
     func testPercentEncoded() throws {
