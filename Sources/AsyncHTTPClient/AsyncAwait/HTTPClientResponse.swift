@@ -32,16 +32,28 @@ public struct HTTPClientResponse: Sendable {
     /// The body of this HTTP response.
     public var body: Body
 
+    /// All visited urls in the order of redirection.
+    public var visitedURLs: [String]
+
+    /// The "target" url of the request after following redirects.
+    public var url: String? {
+        get {
+            self.visitedURLs.last
+        }
+    }
+
     @inlinable public init(
         version: HTTPVersion = .http1_1,
         status: HTTPResponseStatus = .ok,
         headers: HTTPHeaders = [:],
-        body: Body = Body()
+        body: Body = Body(),
+        visitedURLs: [String] = []
     ) {
         self.version = version
         self.status = status
         self.headers = headers
         self.body = body
+        self.visitedURLs = visitedURLs
     }
 
     init(
@@ -49,7 +61,8 @@ public struct HTTPClientResponse: Sendable {
         version: HTTPVersion,
         status: HTTPResponseStatus,
         headers: HTTPHeaders,
-        body: TransactionBody
+        body: TransactionBody,
+        visitedURLs: [String] = []
     ) {
         self.init(
             version: version,
@@ -64,7 +77,8 @@ public struct HTTPClientResponse: Sendable {
                         status: status
                     )
                 )
-            )
+            ),
+            visitedURLs: visitedURLs
         )
     }
 }

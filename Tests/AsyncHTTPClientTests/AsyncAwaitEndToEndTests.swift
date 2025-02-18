@@ -78,6 +78,8 @@ final class AsyncAwaitEndToEndTests: XCTestCase {
 
             XCTAssertEqual(response.status, .ok)
             XCTAssertEqual(response.version, .http2)
+            XCTAssertEqual(response.url, request.url)
+            XCTAssertEqual(response.visitedURLs, [request.url])
         }
     }
 
@@ -100,6 +102,8 @@ final class AsyncAwaitEndToEndTests: XCTestCase {
 
             XCTAssertEqual(response.status, .ok)
             XCTAssertEqual(response.version, .http2)
+            XCTAssertEqual(response.url, request.url)
+            XCTAssertEqual(response.visitedURLs, [request.url])
         }
     }
 
@@ -734,9 +738,10 @@ final class AsyncAwaitEndToEndTests: XCTestCase {
             defer { XCTAssertNoThrow(try client.syncShutdown()) }
             let logger = Logger(label: "HTTPClient", factory: StreamLogHandler.standardOutput(label:))
             var request = HTTPClientRequest(url: "https://127.0.0.1:\(bin.port)/redirect/target")
+            let targetURL = "https://localhost:\(bin.port)/echohostheader"
             request.headers.replaceOrAdd(
                 name: "X-Target-Redirect-URL",
-                value: "https://localhost:\(bin.port)/echohostheader"
+                value: targetURL
             )
 
             guard
@@ -755,6 +760,8 @@ final class AsyncAwaitEndToEndTests: XCTestCase {
 
             XCTAssertEqual(response.status, .ok)
             XCTAssertEqual(response.version, .http2)
+            XCTAssertEqual(response.url, targetURL)
+            XCTAssertEqual(response.visitedURLs, [request.url, targetURL])
             XCTAssertEqual(requestInfo.data, "localhost:\(bin.port)")
         }
     }
