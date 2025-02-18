@@ -377,6 +377,15 @@ extension HTTPClient {
         public var headers: HTTPHeaders
         /// Response body.
         public var body: ByteBuffer?
+        /// All visited urls in the order of redirection.
+        public var visitedURLs: [String]
+
+        /// The "destination" url of the request after following redirects.
+        public var url: String? {
+            get {
+                self.visitedURLs.last
+            }
+        }
 
         /// Create HTTP `Response`.
         ///
@@ -385,13 +394,14 @@ extension HTTPClient {
         ///     - status: Response HTTP status.
         ///     - headers: Reponse HTTP headers.
         ///     - body: Response body.
-        @available(*, deprecated, renamed: "init(host:status:version:headers:body:)")
+        @available(*, deprecated, renamed: "init(host:status:version:headers:body:visitedURLs:)")
         public init(host: String, status: HTTPResponseStatus, headers: HTTPHeaders, body: ByteBuffer?) {
             self.host = host
             self.status = status
             self.version = HTTPVersion(major: 1, minor: 1)
             self.headers = headers
             self.body = body
+            self.visitedURLs = []
         }
 
         /// Create HTTP `Response`.
@@ -402,18 +412,21 @@ extension HTTPClient {
         ///     - version: Response HTTP version.
         ///     - headers: Reponse HTTP headers.
         ///     - body: Response body.
+        ///     - visitedURLs: All visited urls in order of redirection that lead to this response.
         public init(
             host: String,
             status: HTTPResponseStatus,
             version: HTTPVersion,
             headers: HTTPHeaders,
-            body: ByteBuffer?
+            body: ByteBuffer?,
+            visitedURLs: [String]
         ) {
             self.host = host
             self.status = status
             self.version = version
             self.headers = headers
             self.body = body
+            self.visitedURLs = visitedURLs
         }
     }
 
@@ -486,8 +499,11 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
     }
 
     var state = State.idle
+    var redirectURLs: [String] = []
+
     let requestMethod: HTTPMethod
     let requestHost: String
+    let requestURL: String
 
     static let maxByteBufferSize = Int(UInt32.max)
 
@@ -518,7 +534,12 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
         )
         self.requestMethod = request.method
         self.requestHost = request.host
+        self.requestURL = request.url.absoluteString
         self.maxBodySize = maxBodySize
+    }
+
+    public func didRedirect(task: HTTPClient.Task<Response>, _ redirectTask: HTTPClient.Task<Response>, _ url: String, _ visitedURLs: [String]) {
+        redirectURLs.append(url)
     }
 
     public func didReceiveHead(task: HTTPClient.Task<Response>, _ head: HTTPResponseHead) -> EventLoopFuture<Void> {
@@ -596,7 +617,8 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
                 status: head.status,
                 version: head.version,
                 headers: head.headers,
-                body: nil
+                body: nil,
+                visitedURLs: [requestURL] + redirectURLs
             )
         case .body(let head, let body):
             return Response(
@@ -604,7 +626,8 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
                 status: head.status,
                 version: head.version,
                 headers: head.headers,
-                body: body
+                body: body,
+                visitedURLs: [requestURL] + redirectURLs
             )
         case .end:
             preconditionFailure("request already processed")
@@ -647,6 +670,15 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
 ///          object that implements this protocol, but may do so if needed.
 public protocol HTTPClientResponseDelegate: AnyObject {
     associatedtype Response
+
+    /// Called when a redirect occurs. Could be called zero or more times.
+    ///
+    /// - parameters:
+    ///     - task: Current request context.
+    ///     - redirectTask: The task executing the redirect.
+    ///     - url: The new url for the redirect.
+    ///     - visitedURLs: All previously visited urls, not including `url`.
+    func didRedirect(task: HTTPClient.Task<Response>, _ redirectTask: HTTPClient.Task<Response>, _ url: String, _ visitedURLs: [String])
 
     /// Called when the request head is sent. Will be called once.
     ///
@@ -719,6 +751,11 @@ public protocol HTTPClientResponseDelegate: AnyObject {
 }
 
 extension HTTPClientResponseDelegate {
+    /// Default implementation of ``HTTPClientResponseDelegate/didRedirect(task:_:_:_:)-2gy0m``.
+    ///
+    /// By default, this does nothing.
+    public func didRedirect(task: HTTPClient.Task<Response>, _ redirectTask: HTTPClient.Task<Response>, _ url: String, _ visitedURLs: [String]) {}
+
     /// Default implementation of ``HTTPClientResponseDelegate/didSendRequest(task:)-9od5p``.
     ///
     /// By default, this does nothing.

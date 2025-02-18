@@ -18,6 +18,8 @@ import NIOCore
 import NIOHTTP1
 import NIOSSL
 
+import struct Foundation.URL
+
 final class RequestBag<Delegate: HTTPClientResponseDelegate> {
     /// Defends against the call stack getting too large when consuming body parts.
     ///
@@ -234,7 +236,7 @@ final class RequestBag<Delegate: HTTPClientResponseDelegate> {
             executor.demandResponseBodyStream(self)
 
         case .redirect(let executor, let handler, let head, let newURL):
-            handler.redirect(status: head.status, to: newURL, promise: self.task.promise)
+            self.redirect(handler: handler, status: head.status, to: newURL)
             executor.cancelRequest(self)
 
         case .forwardResponseHead(let head):
@@ -258,7 +260,7 @@ final class RequestBag<Delegate: HTTPClientResponseDelegate> {
             executor.demandResponseBodyStream(self)
 
         case .redirect(let executor, let handler, let head, let newURL):
-            handler.redirect(status: head.status, to: newURL, promise: self.task.promise)
+            self.redirect(handler: handler, status: head.status, to: newURL)
             executor.cancelRequest(self)
 
         case .forwardResponsePart(let part):
@@ -294,7 +296,17 @@ final class RequestBag<Delegate: HTTPClientResponseDelegate> {
             }
 
         case .redirect(let handler, let head, let newURL):
-            handler.redirect(status: head.status, to: newURL, promise: self.task.promise)
+            self.redirect(handler: handler, status: head.status, to: newURL)
+        }
+    }
+
+    private func redirect(handler: RedirectHandler<Delegate.Response>, status: HTTPResponseStatus, to redirectURL: URL) {
+        self.task.eventLoop.assertInEventLoop()
+        precondition(self.redirectTask == nil, "redirectTask can only be set once")
+
+        if let redirectTask = handler.redirect(status: status, to: redirectURL, promise: self.task.promise) {
+            self.redirectTask = redirectTask
+            self.delegate.didRedirect(task: self.task, redirectTask, redirectURL.absoluteString, handler.redirectState.visited)
         }
     }
 

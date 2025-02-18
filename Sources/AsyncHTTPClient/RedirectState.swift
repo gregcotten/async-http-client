@@ -23,7 +23,7 @@ struct RedirectState {
     private var limit: Int
 
     /// All visited URLs.
-    private var visited: [String]
+    private(set) var visited: [String]
 
     /// if true, `redirect(to:)` will throw an error if a cycle is detected.
     private let allowCycles: Bool
