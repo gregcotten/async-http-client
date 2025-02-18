@@ -85,18 +85,15 @@ extension HTTPClient {
     ) async throws -> HTTPClientResponse {
         var currentRequest = request
         var currentRedirectState = redirectState
+        var visitedURLs: [String] = []
 
         // this loop is there to follow potential redirects
         while true {
             let preparedRequest = try HTTPClientRequest.Prepared(currentRequest, dnsOverride: configuration.dnsOverride)
             let response = try await {
                 var response = try await self.executeCancellable(preparedRequest, deadline: deadline, logger: logger)
-
-                if let currentRedirectState {
-                    response.visitedURLs = currentRedirectState.visited
-                } else {
-                    response.visitedURLs = [request.url]
-                }
+                visitedURLs.append(currentRequest.url)
+                response.visitedURLs = visitedURLs
 
                 return response
             }()
