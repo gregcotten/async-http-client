@@ -45,6 +45,9 @@ final class RequestBag<Delegate: HTTPClientResponseDelegate> {
     // the consume body part stack depth is synchronized on the task event loop.
     private var consumeBodyPartStackDepth: Int
 
+    // if a redirect occurs, we store the task for it so we can propagate cancellation
+    private var redirectTask: HTTPClient.Task<Delegate.Response>? = nil
+
     // MARK: HTTPClientTask properties
 
     var logger: Logger {
@@ -370,6 +373,8 @@ final class RequestBag<Delegate: HTTPClientResponseDelegate> {
         let action = self.state.fail(error)
 
         self.executeFailAction0(action)
+
+        self.redirectTask?.cancel()
     }
 
     private func executeFailAction0(_ action: RequestBag<Delegate>.StateMachine.FailAction) {
