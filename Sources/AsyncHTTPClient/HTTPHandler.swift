@@ -380,7 +380,7 @@ extension HTTPClient {
         /// All visited urls in the order of redirection.
         public var visitedURLs: [String]
 
-        /// The "destination" url of the request after following redirects.
+        /// The "target" url of the request after following redirects.
         public var url: String? {
             get {
                 self.visitedURLs.last
