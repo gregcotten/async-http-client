@@ -469,7 +469,10 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
 
         var response = try localClient.get(url: self.defaultHTTPBinURLPrefix + "redirect/302").wait()
         XCTAssertEqual(response.status, .ok)
-        XCTAssertEqual(response.visitedURLs, [self.defaultHTTPBinURLPrefix + "redirect/302", self.defaultHTTPBinURLPrefix + "ok"])
+        XCTAssertEqual(
+            response.visitedURLs,
+            [self.defaultHTTPBinURLPrefix + "redirect/302", self.defaultHTTPBinURLPrefix + "ok"]
+        )
         XCTAssertEqual(response.url, self.defaultHTTPBinURLPrefix + "ok")
 
         response = try localClient.get(url: self.defaultHTTPBinURLPrefix + "redirect/https?port=\(httpsBin.port)")
@@ -789,7 +792,7 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
             url: self.defaultHTTPBinURLPrefix + "redirect/target",
             headers: [
                 "Accept": "text/event-stream",
-                "X-Target-Redirect-URL": targetURL
+                "X-Target-Redirect-URL": targetURL,
             ]
         )
 

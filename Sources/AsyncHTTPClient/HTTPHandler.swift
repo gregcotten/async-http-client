@@ -773,7 +773,7 @@ extension HTTPClientResponseDelegate {
     /// Default implementation of ``HTTPClientResponseDelegate/didVisitURL(task:_:)-2hzd1``.
     ///
     /// By default, this does nothing.
-    public func didVisitURL(task: HTTPClient.Task<Response>, _ url: String) {}
+    public func didVisitURL(task: HTTPClient.Task<Response>, _: String) {}
 
     /// Default implementation of ``HTTPClientResponseDelegate/didReceiveHead(task:_:)-9r4xd``.
     ///
@@ -792,7 +792,7 @@ extension HTTPClientResponseDelegate {
     /// Default implementation of ``HTTPClientResponseDelegate/didFollowRedirect(task:_:_:)-7md9q``.
     ///
     /// By default, this does nothing.
-    public func didFollowRedirect(task: HTTPClient.Task<Response>, _ redirectTask: HTTPClient.Task<Response>, _ url: String) {}
+    public func didFollowRedirect(task: HTTPClient.Task<Response>, _: HTTPClient.Task<Response>, _: String) {}
 
     /// Default implementation of ``HTTPClientResponseDelegate/didReceiveError(task:_:)-fhsg``.
     ///

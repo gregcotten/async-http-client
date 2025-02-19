@@ -305,7 +305,11 @@ final class RequestBag<Delegate: HTTPClientResponseDelegate> {
         }
     }
 
-    private func redirect(handler: RedirectHandler<Delegate.Response>, status: HTTPResponseStatus, to redirectURL: URL) {
+    private func redirect(
+        handler: RedirectHandler<Delegate.Response>,
+        status: HTTPResponseStatus,
+        to redirectURL: URL
+    ) {
         self.task.eventLoop.assertInEventLoop()
         precondition(self.redirectTask == nil, "redirectTask can only be set once")
 
