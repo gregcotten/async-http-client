@@ -230,6 +230,8 @@ final class RequestBag<Delegate: HTTPClientResponseDelegate> {
     private func receiveResponseHead0(_ head: HTTPResponseHead) {
         self.task.eventLoop.assertInEventLoop()
 
+        self.delegate.didVisitURL(task: self.task, self.request.url.absoluteString)
+
         // runs most likely on channel eventLoop
         switch self.state.receiveResponseHead(head) {
         case .none:
@@ -309,7 +311,7 @@ final class RequestBag<Delegate: HTTPClientResponseDelegate> {
 
         if let redirectTask = handler.redirect(status: status, to: redirectURL, promise: self.task.promise) {
             self.redirectTask = redirectTask
-            self.delegate.didRedirect(task: self.task, redirectTask, redirectURL.absoluteString, handler.redirectState.visited)
+            self.delegate.didFollowRedirect(task: self.task, redirectTask, redirectURL.absoluteString)
         }
     }
 

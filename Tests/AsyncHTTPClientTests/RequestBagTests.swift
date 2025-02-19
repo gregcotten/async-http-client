@@ -786,8 +786,11 @@ final class RequestBagTests: XCTestCase {
         executor.resetResponseStreamDemandSignal()
 
         XCTAssertTrue(redirectTriggered)
-        XCTAssertEqual(delegate.hitDidRedirect, 1)
+        XCTAssertEqual(delegate.hitDidFollowRedirect, 1)
         XCTAssertEqual(delegate.allRedirectURLs, [targetURL])
+
+        XCTAssertEqual(delegate.hitDidVisitURL, 1)
+        XCTAssertEqual(delegate.allVisitedURLs, [request.url.absoluteString])
     }
 
     func testRedirectWith4KBBodyAnnouncedInResponseHead() {
@@ -850,7 +853,7 @@ final class RequestBagTests: XCTestCase {
         XCTAssertTrue(executor.isCancelled)
 
         XCTAssertTrue(redirectTriggered)
-        XCTAssertEqual(delegate.hitDidRedirect, 1)
+        XCTAssertEqual(delegate.hitDidFollowRedirect, 1)
         XCTAssertEqual(delegate.allRedirectURLs, [targetURL])
     }
 
@@ -934,7 +937,7 @@ final class RequestBagTests: XCTestCase {
         executor.resetResponseStreamDemandSignal()
 
         XCTAssertTrue(redirectTriggered)
-        XCTAssertEqual(delegate.hitDidRedirect, 1)
+        XCTAssertEqual(delegate.hitDidFollowRedirect, 1)
         XCTAssertEqual(delegate.allRedirectURLs, [targetURL])
     }
 
@@ -1005,7 +1008,8 @@ class UploadCountingDelegate: HTTPClientResponseDelegate {
 
     let eventLoop: EventLoop
 
-    private(set) var hitDidRedirect = 0
+    private(set) var hitDidVisitURL = 0
+    private(set) var hitDidFollowRedirect = 0
     private(set) var hitDidSendRequestHead = 0
     private(set) var hitDidSendRequestPart = 0
     private(set) var hitDidSendRequest = 0
@@ -1013,6 +1017,7 @@ class UploadCountingDelegate: HTTPClientResponseDelegate {
     private(set) var hitDidReceiveBodyPart = 0
     private(set) var hitDidReceiveError = 0
 
+    private(set) var allVisitedURLs: [String] = []
     private(set) var allRedirectURLs: [String] = []
     private(set) var receivedHead: HTTPResponseHead?
     private(set) var lastBodyPart: ByteBuffer?
@@ -1023,8 +1028,13 @@ class UploadCountingDelegate: HTTPClientResponseDelegate {
         self.eventLoop = eventLoop
     }
 
-    func didRedirect(task: HTTPClient.Task<Void>, _ redirectTask: HTTPClient.Task<Void>, _ url: String, _ visitedURLs: [String]) {
-        self.hitDidRedirect += 1
+    func didVisitURL(task: HTTPClient.Task<Void>, _ url: String) {
+        self.hitDidVisitURL += 1
+        self.allVisitedURLs.append(url)
+    }
+
+    func didFollowRedirect(task: HTTPClient.Task<Void>, _: HTTPClient.Task<Void>, _ url: String) {
+        self.hitDidFollowRedirect += 1
         self.allRedirectURLs.append(url)
     }
 

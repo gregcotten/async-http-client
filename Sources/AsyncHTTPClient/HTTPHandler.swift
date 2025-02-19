@@ -499,11 +499,10 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
     }
 
     var state = State.idle
-    var redirectURLs: [String] = []
+    var visitedURLs: [String] = []
 
     let requestMethod: HTTPMethod
     let requestHost: String
-    let requestURL: String
 
     static let maxByteBufferSize = Int(UInt32.max)
 
@@ -534,12 +533,11 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
         )
         self.requestMethod = request.method
         self.requestHost = request.host
-        self.requestURL = request.url.absoluteString
         self.maxBodySize = maxBodySize
     }
 
-    public func didRedirect(task: HTTPClient.Task<Response>, _ redirectTask: HTTPClient.Task<Response>, _ url: String, _ visitedURLs: [String]) {
-        redirectURLs.append(url)
+    public func didVisitURL(task: HTTPClient.Task<HTTPClient.Response>, _ url: String) {
+        self.visitedURLs.append(url)
     }
 
     public func didReceiveHead(task: HTTPClient.Task<Response>, _ head: HTTPResponseHead) -> EventLoopFuture<Void> {
@@ -618,7 +616,7 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
                 version: head.version,
                 headers: head.headers,
                 body: nil,
-                visitedURLs: [requestURL] + redirectURLs
+                visitedURLs: visitedURLs
             )
         case .body(let head, let body):
             return Response(
@@ -627,7 +625,7 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
                 version: head.version,
                 headers: head.headers,
                 body: body,
-                visitedURLs: [requestURL] + redirectURLs
+                visitedURLs: visitedURLs
             )
         case .end:
             preconditionFailure("request already processed")
@@ -671,15 +669,6 @@ public final class ResponseAccumulator: HTTPClientResponseDelegate {
 public protocol HTTPClientResponseDelegate: AnyObject {
     associatedtype Response
 
-    /// Called when a redirect occurs. Could be called zero or more times.
-    ///
-    /// - parameters:
-    ///     - task: Current request context.
-    ///     - redirectTask: The task executing the redirect.
-    ///     - url: The new url for the redirect.
-    ///     - visitedURLs: All previously visited urls, not including `url`.
-    func didRedirect(task: HTTPClient.Task<Response>, _ redirectTask: HTTPClient.Task<Response>, _ url: String, _ visitedURLs: [String])
-
     /// Called when the request head is sent. Will be called once.
     ///
     /// - parameters:
@@ -699,6 +688,13 @@ public protocol HTTPClientResponseDelegate: AnyObject {
     /// - parameters:
     ///     - task: Current request context.
     func didSendRequest(task: HTTPClient.Task<Response>)
+
+    /// Called each time a response head is received (including redirects).
+    ///
+    /// - parameters:
+    ///     - task: Current request context.
+    ///     - url: The url of the request.
+    func didVisitURL(task: HTTPClient.Task<Response>, _ url: String)
 
     /// Called when response head is received. Will be called once.
     /// You must return an `EventLoopFuture<Void>` that you complete when you have finished processing the body part.
@@ -724,6 +720,14 @@ public protocol HTTPClientResponseDelegate: AnyObject {
     ///     - buffer: Received body `Part`.
     /// - returns: `EventLoopFuture` that will be used for backpressure.
     func didReceiveBodyPart(task: HTTPClient.Task<Response>, _ buffer: ByteBuffer) -> EventLoopFuture<Void>
+
+    /// Called when a redirect occurs. Could be called zero or more times.
+    ///
+    /// - parameters:
+    ///     - task: Current request context.
+    ///     - redirectTask: The task executing the redirect.
+    ///     - url: The new url for the redirect.
+    func didFollowRedirect(task: HTTPClient.Task<Response>, _ redirectTask: HTTPClient.Task<Response>, _ url: String)
 
     /// Called when error was thrown during request execution. Will be called zero or one time only. Request processing will be stopped after that.
     ///
@@ -751,11 +755,6 @@ public protocol HTTPClientResponseDelegate: AnyObject {
 }
 
 extension HTTPClientResponseDelegate {
-    /// Default implementation of ``HTTPClientResponseDelegate/didRedirect(task:_:_:_:)-2gy0m``.
-    ///
-    /// By default, this does nothing.
-    public func didRedirect(task: HTTPClient.Task<Response>, _ redirectTask: HTTPClient.Task<Response>, _ url: String, _ visitedURLs: [String]) {}
-
     /// Default implementation of ``HTTPClientResponseDelegate/didSendRequest(task:)-9od5p``.
     ///
     /// By default, this does nothing.
@@ -771,6 +770,11 @@ extension HTTPClientResponseDelegate {
     /// By default, this does nothing.
     public func didSendRequest(task: HTTPClient.Task<Response>) {}
 
+    /// Default implementation of ``HTTPClientResponseDelegate/didVisitURL(task:_:)-2hzd1``.
+    ///
+    /// By default, this does nothing.
+    public func didVisitURL(task: HTTPClient.Task<Response>, _ url: String) {}
+
     /// Default implementation of ``HTTPClientResponseDelegate/didReceiveHead(task:_:)-9r4xd``.
     ///
     /// By default, this does nothing.
@@ -784,6 +788,11 @@ extension HTTPClientResponseDelegate {
     public func didReceiveBodyPart(task: HTTPClient.Task<Response>, _: ByteBuffer) -> EventLoopFuture<Void> {
         task.eventLoop.makeSucceededVoidFuture()
     }
+
+    /// Default implementation of ``HTTPClientResponseDelegate/didFollowRedirect(task:_:_:)-7md9q``.
+    ///
+    /// By default, this does nothing.
+    public func didFollowRedirect(task: HTTPClient.Task<Response>, _ redirectTask: HTTPClient.Task<Response>, _ url: String) {}
 
     /// Default implementation of ``HTTPClientResponseDelegate/didReceiveError(task:_:)-fhsg``.
     ///
