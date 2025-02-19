@@ -25,6 +25,16 @@ public final class FileDownloadDelegate: HTTPClientResponseDelegate {
         public var totalBytes: Int?
         public var receivedBytes: Int
 
+        /// All visited urls in the order of redirection.
+        public var visitedURLs: [String] = []
+
+        /// The "target" url of the request after following redirects.
+        public var url: String? {
+            get {
+                self.visitedURLs.last
+            }
+        }
+
         public var head: HTTPResponseHead {
             get {
                 assert(self._head != nil)
@@ -148,6 +158,10 @@ public final class FileDownloadDelegate: HTTPClientResponseDelegate {
                 }
             }
         )
+    }
+
+    public func didVisitURL(task: HTTPClient.Task<Progress>, _ url: String) {
+        self.progress.visitedURLs.append(url)
     }
 
     public func didReceiveHead(

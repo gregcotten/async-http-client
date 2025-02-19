@@ -778,6 +778,44 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
 
         XCTAssertEqual(50, response.totalBytes)
         XCTAssertEqual(50, response.receivedBytes)
+
+        XCTAssertEqual(request.url.absoluteString, response.url)
+        XCTAssertEqual([request.url.absoluteString], response.visitedURLs)
+    }
+
+    func testFileDownloadWithRedirect() throws {
+        let targetURL = self.defaultHTTPBinURLPrefix + "events/10/content-length"
+        let request = try Request(
+            url: self.defaultHTTPBinURLPrefix + "redirect/target",
+            headers: [
+                "Accept": "text/event-stream",
+                "X-Target-Redirect-URL": targetURL
+            ]
+        )
+
+        let response =
+            try TemporaryFileHelpers.withTemporaryFilePath { path -> FileDownloadDelegate.Response in
+                let delegate = try FileDownloadDelegate(path: path)
+
+                let response = try self.defaultClient.execute(
+                    request: request,
+                    delegate: delegate
+                )
+                .wait()
+
+                try XCTAssertEqual(50, TemporaryFileHelpers.fileSize(path: path))
+
+                return response
+            }
+
+        XCTAssertEqual(.ok, response.head.status)
+        XCTAssertEqual("50", response.head.headers.first(name: "content-length"))
+
+        XCTAssertEqual(50, response.totalBytes)
+        XCTAssertEqual(50, response.receivedBytes)
+
+        XCTAssertEqual(targetURL, response.url)
+        XCTAssertEqual([request.url.absoluteString, targetURL], response.visitedURLs)
     }
 
     func testFileDownloadError() throws {
@@ -809,6 +847,9 @@ final class HTTPClientTests: XCTestCaseHTTPClientTestsBaseClass {
 
         XCTAssertEqual(nil, response.totalBytes)
         XCTAssertEqual(0, response.receivedBytes)
+
+        XCTAssertEqual(request.url.absoluteString, response.url)
+        XCTAssertEqual([request.url.absoluteString], response.visitedURLs)
     }
 
     func testFileDownloadCustomError() throws {
